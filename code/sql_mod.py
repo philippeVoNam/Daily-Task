@@ -14,9 +14,9 @@ def add_task(conn, task):
     :return: star id
     """
     data = task.get_data()
-    sql = ''' INSERT INTO tasks(title, group_class, due_date, steps, total_steps)
+    sql = ''' INSERT INTO tasks(title, group_class, due_date, progress, completed)
               VALUES(?,?,?,?,?) '''
-
+              
     cur = conn.cursor()
     cur.execute('SELECT * FROM tasks WHERE (title=? AND group_class=?)', (task.title, task.groupClass))
     entry = cur.fetchone()
@@ -25,11 +25,12 @@ def add_task(conn, task):
         cur = conn.cursor()
         cur.execute(sql, data)
         conn.commit()
-        print("added")
-        print(task)
+        # print("added")
+        # print(task)
     else:
-        print("Entry already downloaded")
-        print(task)
+        # print("Entry already downloaded")
+        # print(task)
+        pass
     
     return cur.lastrowid
 
@@ -45,7 +46,25 @@ def delete_task(conn, groupClass, title):
     cur.execute(sql, (groupClass,title))
     conn.commit()
 
-def get_tasks(conn):
+def update_task(conn, task):
+    """
+    update priority, begin_date, and end date of a task
+    :param conn:
+    :param task:
+    :return: project id
+    """
+    sql = ''' UPDATE tasks
+              SET title = ?,
+              group_class = ?,
+              due_date = ?,
+              progress = ?,
+              completed= ? 
+              WHERE group_class=? AND title=?'''
+    cur = conn.cursor()
+    cur.execute(sql, (task.title, task.groupClass, task.dueDateStr, task.progress, task.completed, task.groupClass, task.title))
+    conn.commit()
+
+def get_tasks_dbData(conn):
     """
     Query all rows in the tasks table
     :param conn: the Connection object
@@ -55,9 +74,6 @@ def get_tasks(conn):
     cur.execute("SELECT * FROM tasks")
  
     tasks = cur.fetchall()
-
-    print("getting tasks")
-    print(tasks)
 
     return tasks
 
@@ -98,8 +114,8 @@ def main():
                                     title text NOT NULL,
                                     group_class text NOT NULL,
                                     due_date text NOT NULL,
-                                    steps integer NOT NULL,
-                                    total_steps integer NOT NULL
+                                    progress integer NOT NULL,
+                                    completed integer NOT NULL
                                 );"""
 
     # steps / total_steps = percentage completion

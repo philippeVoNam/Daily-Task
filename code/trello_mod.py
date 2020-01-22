@@ -50,9 +50,9 @@ class TrelloController():
 
         return cardDataList
 
-obj = TrelloController()
-board = obj.get_board("SCHOOL WINTER")
-cards = obj.get_cards(board)
+# obj = TrelloController()
+# board = obj.get_board("SCHOOL WINTER")
+# cards = obj.get_cards(board)
 
-for card in cards:
-    print(card)
+# for card in cards:
+#     print(card)
