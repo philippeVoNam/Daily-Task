@@ -1,0 +1,6 @@
+#!/bin/bash
+
+cd /home/namv/Documents/Personal_Projects/Daily-Task/code
+source env/bin/activate
+python daily.py
+read

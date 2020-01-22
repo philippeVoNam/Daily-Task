@@ -4,6 +4,7 @@
 # * Imports
 # 3rd Party Imports
 from datetime import date, datetime, timedelta
+import sys
 # User Imports
 from trello_mod import TrelloController
 import sql_mod as sqlMod
@@ -25,16 +26,24 @@ class Task():
         self.dueDateStr = self.dueDate.strftime("%d-%m-%Y") # convert datetime -> str
         self.dueDateStrPrint = self.dueDate.strftime("%d-%B-%Y") # convert datetime -> str
 
-        # calculating days left
-        today = date.today()
-        daysLeft = (self.dueDate.date() - today)
-        daysLeft = int(daysLeft.days)
+        # Progress text
+        self.progressText = self.progress_text_generate(self.progress, 100)
 
     def get_data(self):
         return (self.title, self.groupClass, self.dueDateStr, self.progress, self.completed)
 
     def get_list_print_data(self):
-        return [self.id, self.groupClass, self.title, self.dueDateStrPrint]
+        return [self.id, self.groupClass, self.title, self.dueDateStrPrint, self.progressText]
+
+    def progress_text_generate(self, count, total): # taken from https://gist.github.com/vladignatyev/06860ec2040cb497f0f3
+        bar_len = 20
+        filled_len = int(round(bar_len * count / float(total)))
+
+        percents = round(100.0 * count / float(total), 1)
+        bar = '◼' * filled_len + '-' * (bar_len - filled_len)
+
+        progressText = '[%s] %s%s' % (bar, percents, '%')
+        return progressText
 
     def __str__(self):
         return self.groupClass + " : " + self.title  + " : " + str(self.progress)
@@ -172,7 +181,7 @@ class TaskController():
         tasksStr = sorted(tasksStr,key=lambda taskStr: datetime.strptime(taskStr[3] , "%d-%B-%Y"))
 
         for row in tasksStr:
-            print("    {: <5} {: <12} {: <40} {: <15}".format(*row))
+            print("    {: <5} {: <12} {: <40} {: <20} {: <15}".format(*row))
 
     def update_task_progress(self, task, progress):
         """[update the progress of task]
@@ -181,6 +190,8 @@ class TaskController():
             task {[Task]} -- [description]
         """
         # if task is completed
+        task.progress = progress
+        
         if task.progress >= 100:
             self.set_task_complete(task)
             

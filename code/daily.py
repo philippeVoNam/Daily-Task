@@ -1,3 +1,4 @@
+ #!/usr/bin/env python
  # * author : Philippe Vo 
  # * date : Jan-20-2020 23:31:03
  
@@ -8,6 +9,9 @@ from pyfiglet import print_figlet
 from PyInquirer import style_from_dict, Token, prompt
 from PyInquirer import Validator, ValidationError
 from examples import custom_style_3
+import os
+import cowsay
+import calendar
 # User Imports
 from sql_mod import add_task, get_tasks_dbData, create_connection
 from task_mod import Task, TaskController
@@ -34,7 +38,7 @@ from task_mod import Task, TaskController
 """
 - how to deal with longer projects - ie COEN390 project and SOEN projects
 - update task -> trello complete
-- static progress bar
+- maybe rethink the analyze_task ... 
 """
 
 class NumberValidator(Validator):
@@ -48,48 +52,15 @@ class NumberValidator(Validator):
 
 # * Code
 def main_cli():
+    taskController = TaskController()
 
-    # Downloading Trello Data and updating database 
-    database = r"resources/data.db"
-    conn = create_connection(database)
-
-    with conn:
-        taskController = TaskController()
-        taskController.trello_download_to_db()
-
-        tasksDbData = get_tasks_dbData(conn)
-        tasks = taskController.dbDatas_to_tasks(tasksDbData)
-
-    # Filtering tasks between mandatory and optional 
-    mandatoryTasks, optionaltasks, pastduetasks = taskController.filter_tasks(tasks)
+    # Download from trello and update database
+    mandatoryTasks, optionaltasks, pastduetasks = get_data_trello_to_db()
 
     validTaskList = get_tasks_valid([mandatoryTasks, optionaltasks, pastduetasks])
 
-    # Printing Tasks
-    colorMandatory = "255;2;151:" 
-    colorOptional = "2;255;232:" 
-    colorPastdue = "255;255;255:" 
-
-    mandatoryTasksStr = []
-    for task in mandatoryTasks:
-        mandatoryTasksStr.append(task.get_list_print_data())
-
-    optionalTasksStr = []
-    for task in optionaltasks:
-        optionalTasksStr.append(task.get_list_print_data())
-
-    pastdueTasksStr = []
-    for task in pastduetasks:
-        pastdueTasksStr.append(task.get_list_print_data())
-
-    print_figlet("Mandatory", font="slant", colors=colorMandatory)
-    taskController.print_task_table(mandatoryTasksStr)
-
-    print_figlet("Optional", font="slant", colors=colorOptional)
-    taskController.print_task_table(optionalTasksStr)
-
-    print_figlet("Past-Due", font="slant", colors=colorPastdue)
-    taskController.print_task_table(pastdueTasksStr)
+    # print data
+    print_data(mandatoryTasks, optionaltasks, pastduetasks, taskController)
 
     # Ask which task to update
     commandAnswer = ask_command()
@@ -104,8 +75,20 @@ def main_cli():
         else :
             progress = ask_progress()
             taskController.update_task_progress(task, progress)
-            print(task)
 
+            # clear screen
+            clear_screen()
+
+            # Update database and re-print
+            ## Download from trello and update database
+            mandatoryTasks, optionaltasks, pastduetasks = get_data_trello_to_db()
+
+            validTaskList = get_tasks_valid([mandatoryTasks, optionaltasks, pastduetasks])
+
+            ## print data
+            print_data(mandatoryTasks, optionaltasks, pastduetasks, taskController)
+
+        # ask command
         commandAnswer = ask_command()
 
 def ask_command():
@@ -168,6 +151,59 @@ def get_tasks_valid(taskLists):
             validTaskList.append(task)
 
     return validTaskList
+
+def print_data(mandatoryTasks, optionaltasks, pastduetasks, taskController):
+    # Printing Tasks
+    colorMandatory = "255;2;151:" 
+    colorOptional = "2;255;232:" 
+    colorPastdue = "255;255;255:" 
+
+    mandatoryTasksStr = []
+    for task in mandatoryTasks:
+        mandatoryTasksStr.append(task.get_list_print_data())
+
+    optionalTasksStr = []
+    for task in optionaltasks:
+        optionalTasksStr.append(task.get_list_print_data())
+
+    pastdueTasksStr = []
+    for task in pastduetasks:
+        pastdueTasksStr.append(task.get_list_print_data())
+
+    print_figlet("Mandatory", font="slant", colors=colorMandatory)
+    taskController.print_task_table(mandatoryTasksStr)
+
+    print_figlet("Optional", font="slant", colors=colorOptional)
+    taskController.print_task_table(optionalTasksStr)
+
+    print_figlet("Past-Due", font="slant", colors=colorPastdue)
+    taskController.print_task_table(pastdueTasksStr)
+
+    print("")
+
+    today = date.today()
+    dateStr = today.strftime("%d-%B-%Y")
+    cowsay.tux("Current Date : " + dateStr)
+
+def clear_screen():
+    os.system("clear")
+
+def get_data_trello_to_db():
+    # Downloading Trello Data and updating database 
+    database = r"resources/data.db"
+    conn = create_connection(database)
+
+    with conn:
+        taskController = TaskController()
+        taskController.trello_download_to_db()
+
+        tasksDbData = get_tasks_dbData(conn)
+        tasks = taskController.dbDatas_to_tasks(tasksDbData)
+
+    # Filtering tasks between mandatory and optional 
+    mandatoryTasks, optionaltasks, pastduetasks = taskController.filter_tasks(tasks)
+
+    return mandatoryTasks, optionaltasks, pastduetasks 
 
 if __name__ == '__main__':
     main_cli()
