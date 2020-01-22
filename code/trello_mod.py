@@ -18,6 +18,9 @@ class TrelloController():
         )
 
         self.allBoards = self.client.list_boards()
+        board = self.get_board("SCHOOL WINTER")
+        self.listIds = self.get_list_ids(board)
+        self.cardDataList = self.get_cards(board)
 
     def get_board(self, boardName):
         """ returns the board based on the name """
@@ -42,6 +45,7 @@ class TrelloController():
                     data["groupName"] = list_.name
                     data["cardName"] = card.name
                     data["dueDate"] = card.due_date # REVIEW : Ignore the due dates that are more than 2 weeks ?
+                    data["card"] = card
                     today = date.today()
                     daysLeft = (card.due_date.date() - today)
                     daysLeft = int(daysLeft.days)
@@ -49,6 +53,52 @@ class TrelloController():
                         cardDataList.append(data)
 
         return cardDataList
+
+    def get_list_ids(self, board):
+        """[returns a Dictionary that contains the lists name and its id]
+        
+        Arguments:
+            board {[trello.Board]} -- [description]
+        
+        Returns:
+            [Dictionary of String and Strings ?] -- [{list name, list_id}}]
+        """
+        listIds = {}
+        lists = board.list_lists()
+        for list_ in lists:
+            listIds[list_.name] = list_.id
+
+        return listIds
+
+    def move_to_complete(self, groupName, title):
+        """[move the card to completed section of trello]
+        
+        Arguments:
+            groupName {[String]} -- [card list name]
+            title {[String]} -- [card name]
+        """
+        card = self.get_card(groupName, title)
+        try:
+            card.change_list(self.listIds["Completed"])
+            print("Card moved to Completed")
+        except Exception as e:
+            print("Card not found")
+    
+    def get_card(self, groupName, title):
+        """[return the card depending on card groupName and title]
+        
+        Arguments:
+            groupName {[String]} -- [card list name]
+            title {[String]} -- [card title]
+        
+        Returns:
+            [trello.card] -- [description]
+        """
+        for card in self.cardDataList:
+            if card["groupName"] == groupName and card["cardName"] == title:
+                return card["card"]
+        
+        return None
 
 # obj = TrelloController()
 # board = obj.get_board("SCHOOL WINTER")

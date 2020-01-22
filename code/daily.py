@@ -12,6 +12,7 @@ from examples import custom_style_3
 import os
 import cowsay
 import calendar
+from colored import fg, bg, attr
 # User Imports
 from sql_mod import add_task, get_tasks_dbData, create_connection
 from task_mod import Task, TaskController
@@ -36,9 +37,8 @@ from task_mod import Task, TaskController
 
 # TODO :
 """
-- how to deal with longer projects - ie COEN390 project and SOEN projects
-- update task -> trello complete
 - maybe rethink the analyze_task ... 
+- delete some tasks if completed - so ID dont get too big ... 
 """
 
 class NumberValidator(Validator):
@@ -194,8 +194,15 @@ def get_data_trello_to_db():
     conn = create_connection(database)
 
     with conn:
+        # try:
         taskController = TaskController()
         taskController.trello_download_to_db()
+
+        # except Exception as e:
+        #     color = bg('indian_red_1a') + fg('white')
+        #     reset = attr('reset')
+        #     print(color + "Could not download data from Trello. Database hade not been updated." + reset)
+        #     print(e)
 
         tasksDbData = get_tasks_dbData(conn)
         tasks = taskController.dbDatas_to_tasks(tasksDbData)

@@ -190,10 +190,16 @@ class TaskController():
             task {[Task]} -- [description]
         """
         # if task is completed
+        if progress < 0:
+            print("Invalid input")
+            return
+
         task.progress = progress
         
         if task.progress >= 100:
             self.set_task_complete(task)
+            trelloController = TrelloController()
+            trelloController.move_to_complete(task.groupClass, task.title)
             
         # if not
         else:
