@@ -194,15 +194,15 @@ def get_data_trello_to_db():
     conn = create_connection(database)
 
     with conn:
-        # try:
-        taskController = TaskController()
-        taskController.trello_download_to_db()
+        try:
+            taskController = TaskController()
+            taskController.trello_download_to_db()
 
-        # except Exception as e:
-        #     color = bg('indian_red_1a') + fg('white')
-        #     reset = attr('reset')
-        #     print(color + "Could not download data from Trello. Database hade not been updated." + reset)
-        #     print(e)
+        except Exception as e:
+            color = bg('indian_red_1a') + fg('white')
+            reset = attr('reset')
+            print(color + "Could not download data from Trello. Database hade not been updated." + reset)
+            print(e)
 
         tasksDbData = get_tasks_dbData(conn)
         tasks = taskController.dbDatas_to_tasks(tasksDbData)

@@ -5,6 +5,7 @@
 # 3rd Party Imports
 from datetime import date, datetime, timedelta
 import sys
+from colored import fg, bg, attr
 # User Imports
 from trello_mod import TrelloController
 import sql_mod as sqlMod
@@ -26,6 +27,22 @@ class Task():
         self.dueDateStr = self.dueDate.strftime("%d-%m-%Y") # convert datetime -> str
         self.dueDateStrPrint = self.dueDate.strftime("%d-%B-%Y") # convert datetime -> str
 
+        ## expected progress text print
+        taskController = TaskController()
+        today = date.today()
+        daysLeft = (self.dueDate.date() - today)
+        daysLeft = int(daysLeft.days)
+
+        expectedProgress = taskController.expected_progress(daysLeft)
+        color = fg('deep_pink_1b')
+        bold = attr('bold')
+        reset = attr('reset')
+
+        if expectedProgress > 100 or expectedProgress <= 0: # if overdue or still have some time before needing to do it 
+            self.expectedProgressTxt = ""
+        else:
+            self.expectedProgressTxt = color + str(expectedProgress) + bold + reset
+
         # Progress text
         self.progressText = self.progress_text_generate(self.progress, 100)
 
@@ -33,7 +50,7 @@ class Task():
         return (self.title, self.groupClass, self.dueDateStr, self.progress, self.completed)
 
     def get_list_print_data(self):
-        return [self.id, self.groupClass, self.title, self.dueDateStrPrint, self.progressText]
+        return [self.id, self.groupClass, self.title, self.dueDateStrPrint, self.progressText, self.expectedProgressTxt]
 
     def progress_text_generate(self, count, total): # taken from https://gist.github.com/vladignatyev/06860ec2040cb497f0f3
         bar_len = 20
@@ -181,7 +198,7 @@ class TaskController():
         tasksStr = sorted(tasksStr,key=lambda taskStr: datetime.strptime(taskStr[3] , "%d-%B-%Y"))
 
         for row in tasksStr:
-            print("    {: <5} {: <12} {: <40} {: <20} {: <15}".format(*row))
+            print("    {: <5} {: <12} {: <40} {: <20} {: <30} {: <30}".format(*row))
 
     def update_task_progress(self, task, progress):
         """[update the progress of task]
