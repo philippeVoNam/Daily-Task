@@ -86,9 +86,9 @@ class TaskController():
         if task.completed == 1:
             return COMPLETED
 
-        if daysLeft <= 0:
+        if daysLeft < 0:
             return PASTDUE
-        elif daysLeft > 0 and daysLeft <= 2: # automatically mandatory if its due in 2 days
+        elif daysLeft >= 0 and daysLeft <= 2: # automatically mandatory if its due in 2 days
             return MANDATORY
         else:
             # if task progress  < expected progress -> MANDATORY

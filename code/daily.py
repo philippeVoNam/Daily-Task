@@ -37,6 +37,7 @@ from task_mod import Task, TaskController
 
 # TODO :
 """
+- consider porting this to "curses" - will allow to still have the terminal feel, but with updating of the screen handled more elegantly. 
 - maybe have a different version that i can use it in a smaller terminal ... 
 - if trello updated some stuff, if task already exists in database -> it wont update it in database 
 - maybe rethink the analyze_task ... 
