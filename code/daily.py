@@ -13,6 +13,9 @@ import os
 import cowsay
 import calendar
 from colored import fg, bg, attr
+
+from blessed import Terminal
+
 # User Imports
 from sql_mod import add_task, get_tasks_dbData, create_connection
 from task_mod import Task, TaskController
@@ -58,7 +61,7 @@ def main_cli():
     taskController = TaskController()
 
     # Download from trello and update database
-    mandatoryTasks, optionaltasks, pastduetasks = get_data_trello_to_db()
+    mandatoryTasks, optionaltasks, pastduetasks = get_data_trello_to_db(True)
 
     validTaskList = get_tasks_valid([mandatoryTasks, optionaltasks, pastduetasks])
 
@@ -68,6 +71,7 @@ def main_cli():
     # Ask which task to update
     commandAnswer = ask_command()
 
+    # Main Loop
     while commandAnswer != "Quit":
         taskID = ask_update_task()
         
@@ -84,15 +88,20 @@ def main_cli():
 
             # Update database and re-print
             ## Download from trello and update database
-            mandatoryTasks, optionaltasks, pastduetasks = get_data_trello_to_db()
-
+            # SECTION : get_data()
+            mandatoryTasks, optionaltasks, pastduetasks = get_data_trello_to_db(True)
             validTaskList = get_tasks_valid([mandatoryTasks, optionaltasks, pastduetasks])
 
+            # SECTION : display_screen()
             ## print data
             print_data(mandatoryTasks, optionaltasks, pastduetasks, taskController)
 
+        # SECTION : wait_menu_selection() -> either "Update Task" / "Quit" / "Keyboard Input Selection Menu"
         # ask command
         commandAnswer = ask_command()
+
+def main_blessed():
+    """ using the blessed UI """
 
 def ask_command():
     """[ask user if they want to Update Task or Quit program]
@@ -191,7 +200,7 @@ def print_data(mandatoryTasks, optionaltasks, pastduetasks, taskController):
 def clear_screen():
     os.system("clear")
 
-def get_data_trello_to_db():
+def get_data_trello_to_db(updateFromTrello = False):
     # Downloading Trello Data and updating database 
     database = r"resources/data.db"
     conn = create_connection(database)
@@ -199,7 +208,9 @@ def get_data_trello_to_db():
     with conn:
         try:
             taskController = TaskController()
-            taskController.trello_download_to_db()
+
+            if updateFromTrello:
+                taskController.trello_download_to_db()
 
         except Exception as e:
             color = bg('indian_red_1a') + fg('white')
@@ -215,5 +226,141 @@ def get_data_trello_to_db():
 
     return mandatoryTasks, optionaltasks, pastduetasks 
 
+# ANCHOR : Blessed
+
+# FIXME : main thing that is really "slow" -> get_data() from Trello ...
+
+menu = [["o Update Task"], ["o Quit"]]
+
+def main_blessed():
+    """ using the blessed UI """
+    # SECTION : get_data()
+    mandatoryTasks, optionaltasks, pastduetasks = get_data_trello_to_db(True)
+    validTaskList = get_tasks_valid([mandatoryTasks, optionaltasks, pastduetasks])
+
+    data = [mandatoryTasks, optionaltasks, pastduetasks]
+
+    # SECTION : display_screen()
+    display_screen(data,"")
+
+    # SECTION : main loop
+    term = Terminal()
+    taskController = TaskController()
+
+    with term.fullscreen():
+        selection = 0
+        display_screen(data, selection)
+        selection_inprogress = True
+        program_running = True
+
+        with term.cbreak(), term.hidden_cursor():
+
+            while program_running:
+                while selection_inprogress:
+                    key = term.inkey()
+                    if key.is_sequence:
+                        if key.name == 'KEY_TAB':
+                            selection += 1
+                        if key.name == 'KEY_DOWN':
+                            selection += 1
+                        if key.name == 'KEY_UP':
+                            selection -= 1
+                        if key.name == 'KEY_ENTER':
+                            selection_inprogress = False
+                    elif key:
+                        print("got {0}.".format(key))
+
+                    selection = selection % len(menu)
+
+                    display_screen(data, selection)
+                
+                if menu[selection][0] == "o Update Task":
+                    # SECTION : Update Task
+                    selection_inprogress = True
+
+                    # get the task ID
+                    taskID = ask_update_task() # FIXME : Have to modify ?
+        
+                    # update task
+                    task = taskController.get_task_by_id(taskID, validTaskList)
+                    if task == None:
+                        print("Invalid ID.")
+                    else :
+                        progress = ask_progress()
+                        taskController.update_task_progress(task, progress)
+
+                    # SECTION : get_data()
+                    mandatoryTasks, optionaltasks, pastduetasks = get_data_trello_to_db(False)
+                    validTaskList = get_tasks_valid([mandatoryTasks, optionaltasks, pastduetasks])
+
+                    data = [mandatoryTasks, optionaltasks, pastduetasks]
+
+                    display_screen(data, selection)
+                
+                else:
+                    print("Exit Program.")
+                    program_running = False
+            
+
+def display_screen(data, selection):
+    """ display the screen """
+    term = Terminal()
+    taskController = TaskController()
+
+    # Clear screen
+    print(term.clear())
+
+    # Convert data to str
+    mandatoryTasks = data[0]
+    optionaltasks = data[1]
+    pastduetasks = data[2]
+
+    mandatoryTasksStr = []
+    for task in mandatoryTasks:
+        mandatoryTasksStr.append(task.get_list_print_data())
+
+    optionalTasksStr = []
+    for task in optionaltasks:
+        optionalTasksStr.append(task.get_list_print_data())
+
+    pastdueTasksStr = []
+    for task in pastduetasks:
+        pastdueTasksStr.append(task.get_list_print_data())
+
+    # Print Titles and Data
+    colorMandatory = "255;2;151:" 
+    colorOptional = "2;255;232:" 
+    colorPastdue = "255;255;255:" 
+
+    # print(term.bold_red("Mandatory"))
+    print_figlet("Mandatory", font="slant", colors=colorMandatory)
+
+    taskController.print_task_table(mandatoryTasksStr)
+
+    # print(term.bold_green("Optional"))
+    print_figlet("Optional", font="slant", colors=colorOptional)
+
+    taskController.print_task_table(optionalTasksStr)
+
+    # print(term.bold_grey("PastDue"))
+    print_figlet("Past-Due", font="slant", colors=colorPastdue)
+
+    taskController.print_task_table(pastdueTasksStr)
+
+    print("")
+
+    # Current Date
+    today = date.today()
+    dateStr = today.strftime("%d-%B-%Y")
+    cowsay.tux("Current Date : " + dateStr)
+
+    # Print Menu
+    for (idx, m) in enumerate(menu):
+        if idx == selection:
+            print(term.red(m[0]))
+        else:
+            print(term.white(m[0]))
+
 if __name__ == '__main__':
-    main_cli()
+    # main_cli()
+    main_blessed()
